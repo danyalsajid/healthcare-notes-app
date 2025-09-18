@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A healthcare note-taking app with flexible hierarchy",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "client": "vite",
@@ -17,7 +21,7 @@
   "dependencies": {
     "@solidjs/router": "^0.10.5",
     "bcryptjs": "^3.0.2",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^9.6.0",
     "bootstrap": "^5.3.8",
     "cors": "^2.8.5",
     "drizzle-kit": "^0.31.4",
