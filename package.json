@@ -1,0 +1,39 @@
+{
+  "name": "healthcare-notes-app",
+  "version": "1.0.0",
+  "description": "A healthcare note-taking app with flexible hierarchy",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "vite",
+    "server": "nodemon server/index.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "npm run build && npm run migrate && node server/index.js",
+    "migrate": "node server/db/migrate.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.10.5",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "bootstrap": "^5.3.8",
+    "cors": "^2.8.5",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.5",
+    "express": "^4.18.2",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "solid-icons": "^1.1.0",
+    "solid-js": "^1.8.7",
+    "vite": "^5.0.0",
+    "vite-plugin-solid": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  }
+}
