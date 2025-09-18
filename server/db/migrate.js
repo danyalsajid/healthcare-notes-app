@@ -78,10 +78,12 @@ function createTables() {
 async function readJsonFile(filePath, defaultValue = []) {
   try {
     const content = await fs.readFile(filePath, 'utf8');
+    
     if (!content.trim()) {
       console.log(`File ${filePath} is empty, using default value`);
       return defaultValue;
     }
+    
     return JSON.parse(content);
   } catch (error) {
     if (error.code === 'ENOENT') {
@@ -89,6 +91,8 @@ async function readJsonFile(filePath, defaultValue = []) {
       return defaultValue;
     }
     console.error(`Error reading ${filePath}:`, error);
+    console.error(`File path resolved to: ${path.resolve(filePath)}`);
+    console.error(`File content preview: ${content ? content.substring(0, 100) : 'undefined'}`);
     throw error;
   }
 }
