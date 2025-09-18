@@ -74,6 +74,25 @@ function createTables() {
   console.log('Tables created successfully!');
 }
 
+// Helper function to safely read JSON file
+async function readJsonFile(filePath, defaultValue = []) {
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    if (!content.trim()) {
+      console.log(`File ${filePath} is empty, using default value`);
+      return defaultValue;
+    }
+    return JSON.parse(content);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log(`File ${filePath} not found, using default value`);
+      return defaultValue;
+    }
+    console.error(`Error reading ${filePath}:`, error);
+    throw error;
+  }
+}
+
 // Migrate existing data
 async function migrateExistingData() {
   console.log('Migrating existing data...');
@@ -83,8 +102,14 @@ async function migrateExistingData() {
     const usersPath = path.join(__dirname, '..', 'data', 'users.json');
     const seedPath = path.join(__dirname, '..', 'data', 'seed.json');
     
-    const usersData = JSON.parse(await fs.readFile(usersPath, 'utf8'));
-    const seedData = JSON.parse(await fs.readFile(seedPath, 'utf8'));
+    const usersData = await readJsonFile(usersPath, []);
+    const seedData = await readJsonFile(seedPath, {
+      organisations: [],
+      teams: [],
+      clients: [],
+      episodes: [],
+      notes: []
+    });
     
     // Migrate users
     console.log('Migrating users...');
