@@ -1,8 +1,16 @@
 import { createSignal, createMemo } from 'solid-js';
 import { authApiCall } from './auth';
 
-// API base URL
-const API_BASE = 'http://localhost:3001/api';
+// API base URL - Dynamic based on current host
+const getApiBase = () => {
+  // If running on localhost (development), use localhost
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3001/api';
+  }
+  // Otherwise, use the same host but port 3001 for the API
+  return `http://${window.location.hostname}:3001/api`;
+};
+const API_BASE = getApiBase();
 
 // Global state
 const [data, setData] = createSignal({
