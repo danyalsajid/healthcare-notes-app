@@ -1,14 +1,17 @@
 import { createSignal, createMemo } from 'solid-js';
 import { authApiCall } from './auth';
 
-// API base URL - Dynamic based on current host
+// API base URL - Dynamic based on current host and protocol
 const getApiBase = () => {
+  // Use the same protocol as the current page (HTTP or HTTPS)
+  const protocol = window.location.protocol;
+  
   // If running on localhost (development), use localhost
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:3001/api';
+    return `${protocol}//localhost:3001/api`;
   }
   // Otherwise, use the same host but port 3001 for the API
-  return `http://${window.location.hostname}:3001/api`;
+  return `${protocol}//${window.location.hostname}:3001/api`;
 };
 const API_BASE = getApiBase();
 
