@@ -31,7 +31,7 @@ function Modal(props) {
     <Show when={props.isOpen}>
       <div 
         class="modal fade show d-block"
-        style="background-color: rgba(0, 0, 0, 0.5);"
+        style="background-color: rgba(0, 0, 0, 0.5); z-index: 9999;"
         onClick={handleBackdropClick}
         onKeyDown={handleKeyDown}
         tabIndex="-1"

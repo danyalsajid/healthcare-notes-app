@@ -4,10 +4,14 @@ import MainContent from './components/MainContent';
 import AuthContainer from './components/AuthContainer';
 import SearchBar from './components/SearchBar';
 import TagFilter from './components/TagFilter';
-import { selectedItem, selectedType, loadData, loading, error } from './store';
+import AddItemModal from './components/AddItemModal';
+import { selectedItem, selectedType, loadData, loading, error, addItem } from './store';
 import { isAuthenticated, user, logout } from './auth';
 
 const [isMobile, setIsMobile] = createSignal(false);
+const [showAddModal, setShowAddModal] = createSignal(false);
+const [addModalParent, setAddModalParent] = createSignal(null);
+const [addModalType, setAddModalType] = createSignal(null);
 
 // Load initial data when authenticated
 createEffect(() => {
@@ -38,13 +42,66 @@ function App() {
     return currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase(); // e.g., "John Doe" -> "JD"
   };
 
+  const showAddModalFor = (parentItem, parentType, childType) => {
+    console.log('App - showAddModalFor called with:', { parentItem, parentType, childType });
+    setAddModalParent(parentItem ? { item: parentItem, type: parentType } : null);
+    setAddModalType(childType);
+    setShowAddModal(true);
+    console.log('App - Modal state set:', { 
+      parent: parentItem ? { item: parentItem, type: parentType } : null, 
+      type: childType, 
+      show: true 
+    });
+  };
+
+  const handleAddItem = async (name) => {
+    console.log('App - handleAddItem called with name:', name);
+    try {
+      const parent = addModalParent();
+      const parentId = parent && parent.item ? parent.item.id : null;
+      const modalType = addModalType();
+      console.log('App - Current modal state:', { 
+        modalType, 
+        name, 
+        parentId, 
+        showModal: showAddModal(),
+        parent 
+      });
+      
+      if (!modalType) {
+        throw new Error('Modal type is null - modal state was not set properly');
+      }
+      
+      const newItem = await addItem(modalType, name, parentId);
+      console.log('App - addItem returned:', newItem);
+      
+      setShowAddModal(false);
+      setAddModalParent(null);
+      setAddModalType(null);
+      
+      // Auto-select the new item
+      setSelectedItem(newItem);
+      setSelectedType(modalType);
+      console.log('App - Item added successfully');
+    } catch (error) {
+      console.error('App - Failed to add item:', error);
+      alert(`Failed to add ${modalType || 'item'}: ${error.message}`);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setAddModalParent(null);
+    setAddModalType(null);
+  };
+
   return (
     <Show 
       when={isAuthenticated()} 
       fallback={<AuthContainer />}
     >
       <div class="app-layout">
-        <Sidebar />
+        <Sidebar onShowAddModal={showAddModalFor} />
         <div class="main-content">
           <div class="header">
              {/* {isMobile() ? 'mobile-sidebar' : 'desktop-sidebar'} */}
@@ -102,6 +159,15 @@ function App() {
           </Show>
         </div>
       </div>
+
+      {/* Render modal at root level to avoid z-index issues */}
+      <AddItemModal
+        isOpen={showAddModal()}
+        type={addModalType()}
+        parentName={addModalParent()?.item?.name}
+        onSubmit={handleAddItem}
+        onClose={handleCloseModal}
+      />
     </Show>
   );
 }

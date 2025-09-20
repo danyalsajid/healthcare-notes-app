@@ -1,11 +1,7 @@
 import { For, Show, createSignal, onMount } from 'solid-js';
-import { hierarchyTree, selectedItem, setSelectedItem, selectedType, setSelectedType, addItem } from '../store';
-import AddItemModal from './AddItemModal';
+import { hierarchyTree, selectedItem, setSelectedItem, selectedType, setSelectedType } from '../store';
 
-function Sidebar() {
-  const [showAddModal, setShowAddModal] = createSignal(false);
-  const [addModalParent, setAddModalParent] = createSignal(null);
-  const [addModalType, setAddModalType] = createSignal(null);
+function Sidebar(props) {
   const [isExpanded, setIsExpanded] = createSignal(false);
   const [isMobileCollapsed, setIsMobileCollapsed] = createSignal(true);
   const [isMobile, setIsMobile] = createSignal(false);
@@ -30,54 +26,7 @@ function Sidebar() {
 
   const showAddModalFor = (parentItem, parentType, childType) => {
     console.log('Sidebar - showAddModalFor called with:', { parentItem, parentType, childType });
-    setAddModalParent(parentItem ? { item: parentItem, type: parentType } : null);
-    setAddModalType(childType);
-    setShowAddModal(true);
-    console.log('Sidebar - Modal state set:', { 
-      parent: parentItem ? { item: parentItem, type: parentType } : null, 
-      type: childType, 
-      show: true 
-    });
-  };
-
-  const handleAddItem = async (name) => {
-    console.log('Sidebar - handleAddItem called with name:', name);
-    try {
-      const parent = addModalParent();
-      const parentId = parent && parent.item ? parent.item.id : null;
-      const modalType = addModalType();
-      console.log('Sidebar - Current modal state:', { 
-        modalType, 
-        name, 
-        parentId, 
-        showModal: showAddModal(),
-        parent 
-      });
-      
-      if (!modalType) {
-        throw new Error('Modal type is null - modal state was not set properly');
-      }
-      
-      const newItem = await addItem(modalType, name, parentId);
-      console.log('Sidebar - addItem returned:', newItem);
-      
-      setShowAddModal(false);
-      setAddModalParent(null);
-      setAddModalType(null);
-      
-      // Auto-select the new item
-      selectItem(newItem, modalType);
-      console.log('Sidebar - Item added successfully');
-    } catch (error) {
-      console.error('Sidebar - Failed to add item:', error);
-      alert(`Failed to add ${modalType || 'item'}: ${error.message}`);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setShowAddModal(false);
-    setAddModalParent(null);
-    setAddModalType(null);
+    props.onShowAddModal?.(parentItem, parentType, childType);
   };
 
 
@@ -209,14 +158,6 @@ function Sidebar() {
           </ul>
         </div>
       </Show>
-
-      <AddItemModal
-        isOpen={showAddModal()}
-        type={addModalType()}
-        parentName={addModalParent()?.item?.name}
-        onSubmit={handleAddItem}
-        onClose={handleCloseModal}
-      />
 
     </div>
   );
