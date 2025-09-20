@@ -1,13 +1,6 @@
 import { db, sqlite } from './connection.js';
-import { users, hierarchyNodes, hierarchyClosure, notes } from './schema.js';
+import { users, notes } from './schema.js';
 import { createHierarchyNode } from './hierarchy-utils.js';
-import { eq } from 'drizzle-orm';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Create tables
 function createTables() {
@@ -75,135 +68,165 @@ function createTables() {
   console.log('Tables created successfully!');
 }
 
-// Helper function to safely read JSON file
-async function readJsonFile(filePath, defaultValue = []) {
-  try {
-    const content = await fs.readFile(filePath, 'utf8');
-    
-    if (!content.trim()) {
-      console.log(`File ${filePath} is empty, using default value`);
-      return defaultValue;
-    }
-    
-    return JSON.parse(content);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      console.log(`File ${filePath} not found, using default value`);
-      return defaultValue;
-    }
-    console.error(`Error reading ${filePath}:`, error);
-    console.error(`File path resolved to: ${path.resolve(filePath)}`);
-    console.error(`File content preview: ${content ? content.substring(0, 100) : 'undefined'}`);
-    throw error;
-  }
-}
 
-// Migrate existing data
-async function migrateExistingData() {
-  console.log('Migrating existing data...');
+// Seed database with initial data using direct database commands
+async function seedDatabase() {
+  console.log('Seeding database with initial data...');
   
   try {
-    // Read existing data files
-    const usersPath = path.join(__dirname, '..', 'data', 'users.json');
-    const seedPath = path.join(__dirname, '..', 'data', 'seed.json');
-    
-    const usersData = await readJsonFile(usersPath, []);
-    const seedData = await readJsonFile(seedPath, {
-      organisations: [],
-      teams: [],
-      clients: [],
-      episodes: [],
-      notes: []
-    });
-    
-    // Migrate users
-    console.log('Migrating users...');
-    for (const user of usersData) {
-      await db.insert(users).values({
-        id: user.id,
-        username: user.username,
-        password: user.password,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        createdAt: user.createdAt,
-      }).onConflictDoNothing();
-    }
-    
-    // Create a map to track parent relationships
-    const parentMap = new Map();
-    
-    // Migrate hierarchy data in order: organisations -> teams -> clients -> episodes
-    const hierarchyTypes = ['organisations', 'teams', 'clients', 'episodes'];
-    
-    for (const type of hierarchyTypes) {
-      const items = seedData[type] || [];
-      console.log(`Migrating ${items.length} ${type}...`);
-      
-      for (const item of items) {
-        // Insert the node
-        await db.insert(hierarchyNodes).values({
-          id: item.id,
-          type: item.type,
-          name: item.name,
-          createdAt: item.createdAt,
-          updatedAt: item.createdAt,
-        }).onConflictDoNothing();
-        
-        // Store parent relationship for closure table
-        if (item.parentId) {
-          parentMap.set(item.id, item.parentId);
-        }
-        
-        // Insert self-reference in closure table
-        await db.insert(hierarchyClosure).values({
-          ancestor: item.id,
-          descendant: item.id,
-          depth: 0,
-        }).onConflictDoNothing();
+    // Seed users
+    console.log('Creating default users...');
+    const defaultUsers = [
+      {
+        id: 'user-1',
+        username: 'admin',
+        password: '$2b$10$5zKTeKykmBC9OpjZZVo.aeD27q6XD7CmRCU8kDYRQ0vddPN2gyk4K', // password: admin123
+        email: 'admin@healthcare.com',
+        name: 'System Administrator',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'user-2',
+        username: 'doctor',
+        password: '$2b$10$F06kZecxUW2AgPSDr5wZMe/U7hVxfHkUUlFevdTCAOKEOReKmM4su', // password: doctor123
+        email: 'doctor@healthcare.com',
+        name: 'Dr. Sarah Wilson',
+        role: 'doctor',
+        createdAt: new Date().toISOString()
       }
+    ];
+
+    for (const user of defaultUsers) {
+      await db.insert(users).values(user).onConflictDoNothing();
     }
     
-    // Build closure table relationships
-    console.log('Building closure table relationships...');
-    for (const [childId, parentId] of parentMap.entries()) {
-      // Get all ancestors of the parent
-      const ancestors = await db.select({
-        ancestor: hierarchyClosure.ancestor,
-        depth: hierarchyClosure.depth,
-      })
-      .from(hierarchyClosure)
-      .where(eq(hierarchyClosure.descendant, parentId));
-      
-      // Insert relationships for all ancestors
-      for (const ancestor of ancestors) {
-        await db.insert(hierarchyClosure).values({
-          ancestor: ancestor.ancestor,
-          descendant: childId,
-          depth: ancestor.depth + 1,
-        }).onConflictDoNothing();
+    // Seed organizations
+    console.log('Creating organizations...');
+    const org1 = await createHierarchyNode('organisation', 'City General Hospital');
+    const org2 = await createHierarchyNode('organisation', 'Regional Medical Center');
+    
+    // Seed teams
+    console.log('Creating teams...');
+    const team1 = await createHierarchyNode('team', 'Cardiology Department', org1.id);
+    const team2 = await createHierarchyNode('team', 'Emergency Department', org1.id);
+    const team3 = await createHierarchyNode('team', 'Pediatrics', org2.id);
+    
+    // Seed clients
+    console.log('Creating clients...');
+    const client1 = await createHierarchyNode('client', 'John Smith', team1.id);
+    const client2 = await createHierarchyNode('client', 'Sarah Johnson', team1.id);
+    const client3 = await createHierarchyNode('client', 'Michael Brown', team2.id);
+    
+    // Seed episodes
+    console.log('Creating episodes...');
+    const episode1 = await createHierarchyNode('episode', 'Chest Pain Assessment', client1.id);
+    const episode2 = await createHierarchyNode('episode', 'Follow-up Consultation', client1.id);
+    const episode3 = await createHierarchyNode('episode', 'Routine Checkup', client2.id);
+    
+    // Seed notes
+    console.log('Creating notes...');
+    const seedNotes = [
+      {
+        id: 'note-1',
+        content: 'Patient presents with chest pain. ECG shows normal sinus rhythm. Vital signs stable.',
+        attachedToId: episode1.id,
+        attachedToType: 'episode',
+        tags: JSON.stringify(['Urgent', 'Assessment']),
+        createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-01T00:00:00.000Z').toISOString()
+      },
+      {
+        id: 'note-2',
+        content: 'Cardiology department meeting scheduled for next week to discuss new protocols.',
+        attachedToId: team1.id,
+        attachedToType: 'team',
+        tags: JSON.stringify(['Follow-up']),
+        createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-01T00:00:00.000Z').toISOString()
+      },
+      {
+        id: 'note-3',
+        content: 'Patient education provided regarding heart-healthy lifestyle choices.',
+        attachedToId: client1.id,
+        attachedToType: 'client',
+        tags: JSON.stringify([]),
+        createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-01T00:00:00.000Z').toISOString()
+      },
+      {
+        id: 'note-4',
+        content: 'Prescribed Lisinopril 10mg daily for hypertension. Patient advised to monitor blood pressure at home.',
+        attachedToId: episode2.id,
+        attachedToType: 'episode',
+        tags: JSON.stringify(['Medication', 'Follow-up']),
+        createdAt: new Date('2024-01-02T08:30:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-02T08:30:00.000Z').toISOString()
+      },
+      {
+        id: 'note-5',
+        content: 'Emergency department protocol updated for triage procedures. All staff to review by end of week.',
+        attachedToId: team2.id,
+        attachedToType: 'team',
+        tags: JSON.stringify(['Urgent']),
+        createdAt: new Date('2024-01-02T10:15:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-02T10:15:00.000Z').toISOString()
+      },
+      {
+        id: 'note-6',
+        content: 'Patient reports improvement in symptoms. Blood pressure readings within normal range.',
+        attachedToId: client2.id,
+        attachedToType: 'client',
+        tags: JSON.stringify(['Assessment']),
+        createdAt: new Date('2024-01-03T14:20:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-03T14:20:00.000Z').toISOString()
+      },
+      {
+        id: 'note-7',
+        content: 'Routine checkup completed. All vital signs normal. Next appointment scheduled in 6 months.',
+        attachedToId: episode3.id,
+        attachedToType: 'episode',
+        tags: JSON.stringify([]),
+        createdAt: new Date('2024-01-03T16:45:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-03T16:45:00.000Z').toISOString()
+      },
+      {
+        id: 'note-8',
+        content: 'Patient experiencing severe allergic reaction. Administered epinephrine. Monitoring closely.',
+        attachedToId: client3.id,
+        attachedToType: 'client',
+        tags: JSON.stringify(['Urgent', 'Medication']),
+        createdAt: new Date('2024-01-04T11:30:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-04T11:30:00.000Z').toISOString()
+      },
+      {
+        id: 'note-9',
+        content: 'New pediatric guidelines received from health ministry. Training session to be organized.',
+        attachedToId: team3.id,
+        attachedToType: 'team',
+        tags: JSON.stringify(['Follow-up']),
+        createdAt: new Date('2024-01-04T13:00:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-04T13:00:00.000Z').toISOString()
+      },
+      {
+        id: 'note-10',
+        content: 'Patient discharged with home care instructions. Family members briefed on care procedures.',
+        attachedToId: org1.id,
+        attachedToType: 'organisation',
+        tags: JSON.stringify([]),
+        createdAt: new Date('2024-01-05T09:15:00.000Z').toISOString(),
+        updatedAt: new Date('2024-01-05T09:15:00.000Z').toISOString()
       }
+    ];
+
+    for (const note of seedNotes) {
+      await db.insert(notes).values(note).onConflictDoNothing();
     }
     
-    // Migrate notes
-    console.log('Migrating notes...');
-    const notesData = seedData.notes || [];
-    for (const note of notesData) {
-      await db.insert(notes).values({
-        id: note.id,
-        content: note.content,
-        attachedToId: note.attachedToId,
-        attachedToType: note.attachedToType,
-        tags: note.tags ? JSON.stringify(note.tags) : '[]',
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-      }).onConflictDoNothing();
-    }
-    
-    console.log('Data migration completed successfully!');
+    console.log('Database seeding completed successfully!');
     
   } catch (error) {
-    console.error('Error migrating data:', error);
+    console.error('Error seeding database:', error);
     throw error;
   }
 }
@@ -212,7 +235,7 @@ async function migrateExistingData() {
 export async function runMigration() {
   try {
     createTables();
-    await migrateExistingData();
+    await seedDatabase();
     console.log('Migration completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

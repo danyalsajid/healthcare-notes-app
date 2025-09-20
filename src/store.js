@@ -214,14 +214,14 @@ export const selectSearchResult = (note) => {
   }
 };
 
-// AI Summary functionality
+// AI Summary
 export const generateAISummary = async (notes) => {
   if (!notes || notes.length === 0) {
     throw new Error('No notes provided for summarization');
   }
 
   try {
-    // Prepare notes data for AI analysis
+    // notes data for AI analysis
     const notesData = notes.map(note => ({
       content: note.content,
       createdAt: note.createdAt,
@@ -237,59 +237,7 @@ export const generateAISummary = async (notes) => {
     return response.summary;
   } catch (err) {
     console.error('AI Summary API error:', err);
-    
-    // Fallback to a simple client-side summary if API fails
-    return generateFallbackSummary(notes);
   }
-};
-
-// Fallback summary generation (client-side)
-const generateFallbackSummary = (notes) => {
-  if (notes.length === 0) return 'No notes available.';
-  
-  const totalNotes = notes.length;
-  const totalWords = notes.reduce((acc, note) => acc + note.content.split(' ').length, 0);
-  const avgWordsPerNote = Math.round(totalWords / totalNotes);
-  
-  // Sort notes by creation date
-  const sortedNotes = [...notes].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  const oldestNote = sortedNotes[0];
-  const newestNote = sortedNotes[sortedNotes.length - 1];
-  
-  // Extract key themes (simple keyword frequency)
-  const allText = notes.map(note => note.content.toLowerCase()).join(' ');
-  const words = allText.split(/\W+/).filter(word => word.length > 3);
-  const wordCount = {};
-  words.forEach(word => {
-    wordCount[word] = (wordCount[word] || 0) + 1;
-  });
-  
-  const topWords = Object.entries(wordCount)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 5)
-    .map(([word]) => word);
-  
-  return `📊 **Summary Overview**
-
-` +
-    `**Total Notes:** ${totalNotes}
-` +
-    `**Total Words:** ${totalWords} (avg ${avgWordsPerNote} per note)
-` +
-    `**Date Range:** ${new Date(oldestNote.createdAt).toLocaleDateString()} - ${new Date(newestNote.createdAt).toLocaleDateString()}
-
-` +
-    `**Key Topics:** ${topWords.join(', ')}
-
-` +
-    `**Recent Activity:**
-` +
-    `${notes.slice(-3).map(note => 
-      `• ${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''} (${new Date(note.createdAt).toLocaleDateString()})`
-    ).join('\n')}
-
-` +
-    `*Note: This is a basic summary. For more detailed AI analysis, please ensure the AI service is properly configured.*`;
 };
 
 

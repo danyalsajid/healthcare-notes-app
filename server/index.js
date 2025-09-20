@@ -13,11 +13,10 @@ const __dirname = path.dirname(__filename);
 
 // Database imports
 import { db } from './db/connection.js';
-import { users, hierarchyNodes, notes } from './db/schema.js';
+import { users, notes } from './db/schema.js';
 import { 
   createHierarchyNode, 
   getChildren, 
-  getAllDescendants, 
   getParent, 
   deleteNodeAndDescendants, 
   updateNode, 
@@ -27,6 +26,7 @@ import {
 import { eq, and } from 'drizzle-orm';
 
 const app = express();
+
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'healthcare-notes-secret-key-2024';
 
@@ -35,7 +35,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
 
-// Middleware - Simplified CORS for development
+// CORS for development
 app.use(cors({
   origin: true, // Allow all origins in development
   credentials: true,
@@ -43,7 +43,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   optionsSuccessStatus: 200
 }));
+
 app.use(express.json());
+
 app.use(session({
   secret: 'healthcare-session-secret',
   resave: false,
@@ -80,7 +82,7 @@ const requireAuth = (req, res, next) => {
 // Generate unique ID
 const generateId = () => randomUUID();
 
-// Helper function to build hierarchical data structure
+// Helper function to build hierarchical data
 async function buildHierarchicalData() {
   const organisations = await getNodesByType('organisation');
   const result = {
@@ -126,12 +128,19 @@ async function buildHierarchicalData() {
   return result;
 }
 
+////////////
 // Routes
+////////////
 
-// Health check (public endpoint - must be first)
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+
+////////////
+// Auth Starts
+////////////
 
 // Authentication routes
 app.post('/api/auth/login', async (req, res) => {
@@ -280,6 +289,14 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
   }
 });
 
+////////////
+// Auth Ends
+////////////
+
+////////////
+// CRUD Operations Start
+////////////
+
 // Get all data
 app.get('/api/data', requireAuth, async (req, res) => {
   try {
@@ -393,7 +410,7 @@ app.post('/api/notes', requireAuth, async (req, res) => {
   }
 });
 
-// Create new item (must come after specific routes like /api/notes)
+// Create new item
 app.post('/api/:type', requireAuth, async (req, res) => {
   try {
     const { type } = req.params;
@@ -499,65 +516,6 @@ app.get('/api/notes/:attachedToType/:attachedToId', requireAuth, async (req, res
   }
 });
 
-// AI Summary endpoint
-app.post('/api/ai/summarize', requireAuth, async (req, res) => {
-  try {
-    const { notes } = req.body;
-    
-    if (!notes || !Array.isArray(notes) || notes.length === 0) {
-      return res.status(400).json({ error: 'Notes array is required' });
-    }
-
-    // Generate AI summary using Claude
-    const summary = await generateClaudeAISummary(notes);
-    
-    res.json({ summary });
-  } catch (error) {
-    console.error('AI Summary error:', error);
-    res.status(500).json({ error: 'Failed to generate AI summary' });
-  }
-});
-
-// Generate AI summary using Claude
-async function generateClaudeAISummary(notes) {
-  try {
-    // Prepare notes data for Claude
-    const notesText = notes.map((note, index) => 
-      `Note ${index + 1} (${new Date(note.createdAt).toLocaleDateString()}):\n${note.content}`
-    ).join('\n\n');
-
-    const prompt = `You are a healthcare AI assistant analyzing clinical notes. Please provide a comprehensive summary of the following notes:
-
-${notesText}
-
-Please provide a structured summary that includes:
-1. **Overview**: Key statistics and date range
-2. **Critical Items**: Any urgent or high-priority items that need immediate attention
-3. **Follow-up Requirements**: Appointments, treatments, or actions that need scheduling
-4. **Key Themes**: Main topics and patterns across the notes
-5. **Clinical Insights**: Important medical observations or trends
-6. **Recommendations**: Suggested next steps or actions
-
-Format your response in markdown with clear sections. Focus on actionable insights that would help healthcare professionals manage patient care effectively.`;
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1000,
-      temperature: 0.3,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    });
-
-    return response.content[0].text;
-  } catch (error) {
-    console.error('Claude AI error:', error);
-    throw new Error(`Claude AI failed: ${error.message}`);
-  }
-}
-
-
 // Update hierarchy item
 app.put('/api/:type/:id', requireAuth, async (req, res) => {
   try {
@@ -619,11 +577,69 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+////////////
+// CRUD Operations END
+////////////
+
+
+
+////////////
+// AI Summary Starts
+////////////
+
+// Generate AI summary using Claude
+async function generateClaudeAISummary(notes) {
+  try {
+    // Prepare notes data for Claude
+    const notesText = notes.map((note, index) => 
+      `Note ${index + 1} (${new Date(note.createdAt).toLocaleDateString()}):\n${note.content}`
+    ).join('\n\n');
+
+    const prompt = `You are a healthcare AI assistant analyzing th notes and please provide a 
+        comprehensive summary of the following notes:
+    ${notesText}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 1000,
+      temperature: 0.3,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
+    });
+
+    return response.content[0].text;
+  } catch (error) {
+    console.error('Claude AI error:', error);
+    throw new Error(`Claude AI failed: ${error.message}`);
+  }
+}
+
+// AI Summary endpoint
+app.post('/api/ai/summarize', requireAuth, async (req, res) => {
+  try {
+    const { notes } = req.body;
+    
+    if (!notes || !Array.isArray(notes) || notes.length === 0) {
+      return res.status(400).json({ error: 'Notes array is required' });
+    }
+
+    // Generate AI summary using Claude
+    const summary = await generateClaudeAISummary(notes);
+    
+    res.json({ summary });
+  } catch (error) {
+    console.error('AI Summary error:', error);
+    res.status(500).json({ error: 'Failed to generate AI summary' });
+  }
+});
+
+////////////
+// AI Summary Ends
+////////////
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Healthcare Notes API server running on http://0.0.0.0:${PORT}`);
-  console.log(`API endpoints available at http://0.0.0.0:${PORT}/api`);
-  console.log(`Local access: http://localhost:${PORT}`);
-  console.log(`Network access: http://[your-ip-address]:${PORT}`);
-  console.log(`Using Drizzle ORM with SQLite database`);
+  console.log(`Sever is running with Drizzle ORM with SQLite database`);
 });
