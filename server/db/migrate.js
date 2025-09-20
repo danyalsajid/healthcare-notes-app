@@ -56,6 +56,7 @@ function createTables() {
       content TEXT NOT NULL,
       attached_to_id TEXT NOT NULL,
       attached_to_type TEXT NOT NULL,
+      tags TEXT DEFAULT '[]',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (attached_to_id) REFERENCES hierarchy_nodes(id) ON DELETE CASCADE
@@ -193,6 +194,7 @@ async function migrateExistingData() {
         content: note.content,
         attachedToId: note.attachedToId,
         attachedToType: note.attachedToType,
+        tags: note.tags ? JSON.stringify(note.tags) : '[]',
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
       }).onConflictDoNothing();
