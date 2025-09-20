@@ -1,14 +1,16 @@
 import { Show, For, createSignal } from 'solid-js';
-import { selectedItem, selectedType, getBreadcrumb, getNotesForItem, updateItem, deleteItem, setSelectedItem, setSelectedType } from '../store';
+import { selectedItem, selectedType, getBreadcrumb, getNotesForItem, updateItem, deleteItem, setSelectedItem, setSelectedType, generateAISummary } from '../store';
 import Breadcrumb from './Breadcrumb';
 import NotesList from './NotesList';
 import AddNoteForm from './AddNoteForm';
 import EditItemModal from './EditItemModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import AISummaryModal from './AISummaryModal';
 
 function MainContent() {
   const [showEditModal, setShowEditModal] = createSignal(false);
   const [showDeleteModal, setShowDeleteModal] = createSignal(false);
+  const [showAISummaryModal, setShowAISummaryModal] = createSignal(false);
   
   const item = () => selectedItem();
   const type = () => selectedType();
@@ -29,10 +31,10 @@ function MainContent() {
 
   const getTypeIcon = (itemType) => {
     const icons = {
-      organisation: '🏥',
-      team: '👥',
-      client: '👤',
-      episode: '📋'
+      organisation: 'fas fa-hospital',
+      team: 'fas fa-users',
+      client: 'fas fa-user',
+      episode: 'fas fa-clipboard-list'
     };
     return icons[itemType] || '📄';
   };
@@ -83,62 +85,91 @@ function MainContent() {
     setShowEditModal(true);
   };
 
+  const showAISummary = () => {
+    setShowAISummaryModal(true);
+  };
+
+  const handleGenerateAISummary = async (notes) => {
+    return await generateAISummary(notes);
+  };
+
   return (
-    <div>
+    <div class="container-fluid p-4">
       <Show when={breadcrumb().length > 0}>
         <Breadcrumb items={breadcrumb()} />
       </Show>
 
-      <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-start">
           <div>
-            <h2 class="card-title flex items-center gap-2">
-              <span>{getTypeIcon(type())}</span>
+            <h2 class="card-title h4 fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+              <span style="font-size: 1.5rem;"><i class={getTypeIcon(type())}></i> </span>
               {item().name}
             </h2>
-            <p class="text-sm text-gray-600">
-              {getTypeLabel(type())} • Created {new Date(item().createdAt).toLocaleDateString()}
+            <p class="text-muted small mb-0">
+              <span class="badge bg-light text-dark me-2">{getTypeLabel(type())}</span>
+              Created {new Date(item().createdAt).toLocaleDateString()}
             </p>
           </div>
-          <div class="flex gap-2" style="margin-left: auto;">
+          <div class="d-flex gap-2">
             <button
-              class="btn btn-secondary btn-small"
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center"
               onClick={startEditing}
               title="Edit"
-              style="padding: 0.5rem; display: flex; align-items: center; justify-content: center; min-width: 2rem; height: 2rem;"
+              style="width: 2.5rem; height: 2.5rem;"
             >
               <i class="fas fa-edit"></i>
             </button>
             <button
-              class="btn btn-secondary btn-small"
+              class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
               onClick={showDeleteConfirmation}
               title="Delete"
-              style="padding: 0.5rem; display: flex; align-items: center; justify-content: center; min-width: 2rem; height: 2rem; color: #dc2626;"
+              style="width: 2.5rem; height: 2.5rem;"
             >
               <i class="fas fa-trash"></i>
             </button>
           </div>
         </div>
 
-        <div class="mb-4">
-          <h3 class="font-medium mb-2">Notes ({notes().length})</h3>
-          <Show 
-            when={notes().length > 0}
-            fallback={
-              <p class="text-gray-600 text-sm">
-                No notes attached to this {getTypeLabel(type()).toLowerCase()} yet.
-              </p>
-            }
-          >
-            <NotesList notes={notes()} />
-          </Show>
-        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="h5 fw-medium text-dark mb-0">
+                Notes 
+                <span class="badge bg-primary ms-2">{notes().length}</span>
+              </h3>
+              <Show when={notes().length > 0}>
+                <button
+                  class="btn btn-primary btn-sm"
+                  onClick={showAISummary}
+                  title="Generate AI Summary"
+                >
+                  <i class="fas fa-magic me-2"></i>
+                  AI Summary
+                </button>
+              </Show>
+            </div>
+            <Show 
+              when={notes().length > 0}
+              fallback={
+                <div class="alert alert-light border-0 text-center py-4">
+                  <i class="fas fa-sticky-note text-muted mb-2" style="font-size: 2rem;"></i>
+                  <p class="text-muted mb-0">
+                    No notes attached to this {getTypeLabel(type()).toLowerCase()} yet.
+                  </p>
+                </div>
+              }
+            >
+              <NotesList notes={notes()} />
+            </Show>
+          </div>
 
-        <AddNoteForm 
-          attachedToId={item().id} 
-          attachedToType={type()}
-          attachedToName={item().name}
-        />
+          <AddNoteForm 
+            attachedToId={item().id} 
+            attachedToType={type()}
+            attachedToName={item().name}
+          />
+        </div>
       </div>
 
       <EditItemModal
@@ -155,6 +186,15 @@ function MainContent() {
         itemName={item().name}
         onConfirm={handleDeleteItem}
         onCancel={() => setShowDeleteModal(false)}
+      />
+      
+      <AISummaryModal
+        isOpen={showAISummaryModal()}
+        notes={notes()}
+        itemName={item().name}
+        itemType={type()}
+        onGenerateSummary={handleGenerateAISummary}
+        onClose={() => setShowAISummaryModal(false)}
       />
     </div>
   );

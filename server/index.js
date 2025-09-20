@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Anthropic from '@anthropic-ai/sdk';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,11 @@ import { eq, and } from 'drizzle-orm';
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'healthcare-notes-secret-key-2024';
+
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
 
 // Middleware - Simplified CORS for development
 app.use(cors({
@@ -112,8 +118,9 @@ async function buildHierarchicalData() {
     content: note.content,
     attachedToId: note.attachedToId,
     attachedToType: note.attachedToType,
+    tags: note.tags ? JSON.parse(note.tags) : [],
     createdAt: note.createdAt,
-    updatedAt: note.updatedAt,
+    updatedAt: note.updatedAt
   }));
 
   return result;
@@ -355,7 +362,7 @@ app.get('/api/:type/:id', requireAuth, async (req, res) => {
 // Create new note (must come before the generic :type route)
 app.post('/api/notes', requireAuth, async (req, res) => {
   try {
-    const { content, attachedToId, attachedToType } = req.body;
+    const { content, attachedToId, attachedToType, tags = [] } = req.body;
     
     if (!content || !attachedToId || !attachedToType) {
       return res.status(400).json({ error: 'Content, attachedToId, and attachedToType are required' });
@@ -366,13 +373,20 @@ app.post('/api/notes', requireAuth, async (req, res) => {
       content,
       attachedToId,
       attachedToType,
+      tags: JSON.stringify(tags),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
     await db.insert(notes).values(newNote);
     
-    res.status(201).json(newNote);
+    // Return note with parsed tags
+    const responseNote = {
+      ...newNote,
+      tags: tags
+    };
+    
+    res.status(201).json(responseNote);
   } catch (error) {
     console.error('Create note error:', error);
     res.status(500).json({ error: 'Failed to create note' });
@@ -408,7 +422,7 @@ app.post('/api/:type', requireAuth, async (req, res) => {
 app.put('/api/notes/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { content } = req.body;
+    const { content, tags = [] } = req.body;
     
     if (!content) {
       return res.status(400).json({ error: 'Content is required' });
@@ -417,6 +431,7 @@ app.put('/api/notes/:id', requireAuth, async (req, res) => {
     const updatedNote = await db.update(notes)
       .set({ 
         content, 
+        tags: JSON.stringify(tags),
         updatedAt: new Date().toISOString() 
       })
       .where(eq(notes.id, id))
@@ -426,7 +441,13 @@ app.put('/api/notes/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Note not found' });
     }
     
-    res.json(updatedNote[0]);
+    // Return note with parsed tags
+    const responseNote = {
+      ...updatedNote[0],
+      tags: tags
+    };
+    
+    res.json(responseNote);
   } catch (error) {
     console.error('Update note error:', error);
     res.status(500).json({ error: 'Failed to update note' });
@@ -465,12 +486,77 @@ app.get('/api/notes/:attachedToType/:attachedToId', requireAuth, async (req, res
       )
     );
     
-    res.json(itemNotes);
+    // Parse tags for each note
+    const notesWithParsedTags = itemNotes.map(note => ({
+      ...note,
+      tags: note.tags ? JSON.parse(note.tags) : []
+    }));
+    
+    res.json(notesWithParsedTags);
   } catch (error) {
     console.error('Get notes error:', error);
     res.status(500).json({ error: 'Failed to fetch notes' });
   }
 });
+
+// AI Summary endpoint
+app.post('/api/ai/summarize', requireAuth, async (req, res) => {
+  try {
+    const { notes } = req.body;
+    
+    if (!notes || !Array.isArray(notes) || notes.length === 0) {
+      return res.status(400).json({ error: 'Notes array is required' });
+    }
+
+    // Generate AI summary using Claude
+    const summary = await generateClaudeAISummary(notes);
+    
+    res.json({ summary });
+  } catch (error) {
+    console.error('AI Summary error:', error);
+    res.status(500).json({ error: 'Failed to generate AI summary' });
+  }
+});
+
+// Generate AI summary using Claude
+async function generateClaudeAISummary(notes) {
+  try {
+    // Prepare notes data for Claude
+    const notesText = notes.map((note, index) => 
+      `Note ${index + 1} (${new Date(note.createdAt).toLocaleDateString()}):\n${note.content}`
+    ).join('\n\n');
+
+    const prompt = `You are a healthcare AI assistant analyzing clinical notes. Please provide a comprehensive summary of the following notes:
+
+${notesText}
+
+Please provide a structured summary that includes:
+1. **Overview**: Key statistics and date range
+2. **Critical Items**: Any urgent or high-priority items that need immediate attention
+3. **Follow-up Requirements**: Appointments, treatments, or actions that need scheduling
+4. **Key Themes**: Main topics and patterns across the notes
+5. **Clinical Insights**: Important medical observations or trends
+6. **Recommendations**: Suggested next steps or actions
+
+Format your response in markdown with clear sections. Focus on actionable insights that would help healthcare professionals manage patient care effectively.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 1000,
+      temperature: 0.3,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
+    });
+
+    return response.content[0].text;
+  } catch (error) {
+    console.error('Claude AI error:', error);
+    throw new Error(`Claude AI failed: ${error.message}`);
+  }
+}
+
 
 // Update hierarchy item
 app.put('/api/:type/:id', requireAuth, async (req, res) => {
@@ -535,7 +621,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Healthcare Notes API server running on http://localhost:${PORT}`);
-  console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);
-  console.log(`🗄️ Using Drizzle ORM with SQLite database`);
+  console.log(`Healthcare Notes API server running on http://localhost:${PORT}`);
+  console.log(`API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`Using Drizzle ORM with SQLite database`);
 });

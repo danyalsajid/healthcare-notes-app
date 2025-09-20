@@ -48,48 +48,51 @@ function AddItemModal(props) {
       title={`Add ${getTypeLabel(props.type)}`}
     >
       <form onSubmit={handleSubmit}>
-        <div class="modal-form-content">
-          <div class="form-icon-header">
-            <i class={getTypeIcon(props.type)} style="font-size: 2rem; color: #2563eb; margin-bottom: 1rem;"></i>
-            <h3 style="margin-bottom: 0.5rem;">Create New {getTypeLabel(props.type)}</h3>
-            {props.parentName && (
-              <p class="text-sm text-gray-600" style="margin-bottom: 1.5rem;">
-                <i class="fas fa-arrow-right" style="margin: 0 0.5rem;"></i>
-                Under: <strong>{props.parentName}</strong>
-              </p>
-            )}
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+               style="width: 4rem; height: 4rem; background-color: #dbeafe; color: #2563eb; font-size: 2rem;">
+            <i class={getTypeIcon(props.type)}></i>
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-tag" style="margin-right: 0.5rem;"></i>
-              Name
-            </label>
-            <input
-              type="text"
-              class="form-input"
-              value={name()}
-              onInput={(e) => setName(e.target.value)}
-              placeholder={`Enter ${getTypeLabel(props.type).toLowerCase()} name`}
-              autofocus
-              required
-            />
-          </div>
+          <h4 class="fw-semibold text-dark mb-2">Create New {getTypeLabel(props.type)}</h4>
+          {props.parentName && (
+            <div class="alert alert-info py-2 mb-0">
+              <i class="fas fa-arrow-right me-2"></i>
+              Under: <strong>{props.parentName}</strong>
+            </div>
+          )}
         </div>
         
-        <div class="modal-actions">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>
-            Create {getTypeLabel(props.type)}
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-secondary"
-            onClick={handleClose}
-          >
-            <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
-            Cancel
-          </button>
+        <div class="mb-4">
+          <label class="form-label fw-medium">
+            <i class="fas fa-tag me-2"></i>
+            Name
+          </label>
+          <input
+            type="text"
+            class="form-control"
+            value={name()}
+            onInput={(e) => setName(e.target.value)}
+            placeholder={`Enter ${getTypeLabel(props.type).toLowerCase()} name`}
+            autofocus
+            required
+          />
+        </div>
+        
+        <div class="modal-footer border-top pt-3">
+          <div class="d-flex gap-2 justify-content-end">
+            <button 
+              type="button" 
+              class="btn btn-outline-secondary"
+              onClick={handleClose}
+            >
+              <i class="fas fa-times me-2"></i>
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>
+              Create {getTypeLabel(props.type)}
+            </button>
+          </div>
         </div>
       </form>
     </Modal>

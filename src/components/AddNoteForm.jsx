@@ -13,9 +13,9 @@ function AddNoteForm(props) {
     setShowAddModal(false);
   });
 
-  const handleSubmit = async (content) => {
+  const handleSubmit = async (content, tags = []) => {
     try {
-      await addNote(content, props.attachedToId, props.attachedToType);
+      await addNote(content, props.attachedToId, props.attachedToType, tags);
       setShowAddModal(false);
     } catch (error) {
       console.error('Failed to add note:', error);
@@ -28,12 +28,12 @@ function AddNoteForm(props) {
   };
 
   return (
-    <div>
+    <div class="border-top pt-3">
       <button
-        class="btn btn-primary"
+        class="btn btn-primary d-flex align-items-center"
         onClick={() => setShowAddModal(true)}
       >
-        <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>
+        <i class="fas fa-plus me-2"></i>
         Add Note
       </button>
 

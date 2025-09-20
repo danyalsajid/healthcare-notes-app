@@ -36,6 +36,7 @@ export const notes = sqliteTable('notes', {
   content: text('content').notNull(),
   attachedToId: text('attached_to_id').notNull().references(() => hierarchyNodes.id, { onDelete: 'cascade' }),
   attachedToType: text('attached_to_type').notNull(),
+  tags: text('tags'), // JSON string array of custom tags
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

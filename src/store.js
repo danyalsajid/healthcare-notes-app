@@ -17,6 +17,15 @@ const [selectedType, setSelectedType] = createSignal(null);
 const [loading, setLoading] = createSignal(false);
 const [error, setError] = createSignal(null);
 
+// Search state
+const [searchQuery, setSearchQuery] = createSignal('');
+const [searchResults, setSearchResults] = createSignal([]);
+const [isSearching, setIsSearching] = createSignal(false);
+
+// Tag filter state
+const [selectedTags, setSelectedTags] = createSignal([]);
+const [availableTags, setAvailableTags] = createSignal([]);
+
 // API helper functions - now uses authenticated API calls
 const apiCall = async (endpoint, options = {}) => {
   try {
@@ -34,6 +43,8 @@ const loadData = async () => {
     setLoading(true);
     const apiData = await apiCall('/data');
     setData(apiData);
+    // Update available tags after loading data
+    updateAvailableTags();
   } catch (err) {
     console.error('Failed to load data:', err);
     // Don't set error for authentication issues
@@ -69,10 +80,200 @@ export const getChildItems = (parentId, childType) => {
 };
 
 export const getNotesForItem = (itemId, itemType) => {
-  return data().notes.filter(note => 
+  let notes = data().notes.filter(note => 
     note.attachedToId === itemId && note.attachedToType === itemType
   );
+  
+  // Apply tag filter if any tags are selected
+  const tags = selectedTags();
+  if (tags.length > 0) {
+    notes = notes.filter(note => {
+      const noteTags = note.tags || [];
+      return tags.some(tag => noteTags.includes(tag));
+    });
+  }
+  
+  return notes;
 };
+
+// Search functionality
+export const searchAllNotes = (query) => {
+  if (!query || query.trim() === '') {
+    setSearchResults([]);
+    setSearchQuery('');
+    return [];
+  }
+
+  const normalizedQuery = query.toLowerCase().trim();
+  setSearchQuery(query);
+  setIsSearching(true);
+
+  try {
+    const allNotes = data().notes;
+    const matchingNotes = allNotes.filter(note => 
+      note.content.toLowerCase().includes(normalizedQuery)
+    );
+
+    // Enhance results with hierarchy information
+    const enhancedResults = matchingNotes.map(note => {
+      const attachedItem = getItemById(note.attachedToId, note.attachedToType);
+      const breadcrumb = getBreadcrumb(note.attachedToId, note.attachedToType);
+      
+      return {
+        ...note,
+        attachedItem,
+        breadcrumb,
+        hierarchy: breadcrumb.map(b => b.name).join(' > ')
+      };
+    });
+
+    setSearchResults(enhancedResults);
+    return enhancedResults;
+  } catch (err) {
+    console.error('Search error:', err);
+    setSearchResults([]);
+    return [];
+  } finally {
+    setIsSearching(false);
+  }
+};
+
+export const clearSearch = () => {
+  setSearchQuery('');
+  setSearchResults([]);
+  setIsSearching(false);
+};
+
+// Tag filtering functions
+export const updateAvailableTags = () => {
+  const allNotes = data().notes;
+  const tagSet = new Set();
+  
+  allNotes.forEach(note => {
+    if (note.tags && Array.isArray(note.tags)) {
+      note.tags.forEach(tag => tagSet.add(tag));
+    }
+  });
+  
+  setAvailableTags(Array.from(tagSet).sort());
+};
+
+export const toggleTagFilter = (tag) => {
+  const currentTags = selectedTags();
+  if (currentTags.includes(tag)) {
+    setSelectedTags(currentTags.filter(t => t !== tag));
+  } else {
+    setSelectedTags([...currentTags, tag]);
+  }
+};
+
+export const clearTagFilters = () => {
+  setSelectedTags([]);
+};
+
+export const getAllNotesWithTags = () => {
+  let notes = data().notes;
+  
+  // Apply tag filter if any tags are selected
+  const tags = selectedTags();
+  if (tags.length > 0) {
+    notes = notes.filter(note => {
+      const noteTags = note.tags || [];
+      return tags.some(tag => noteTags.includes(tag));
+    });
+  }
+  
+  return notes;
+};
+
+export const selectSearchResult = (note) => {
+  // Navigate to the item that contains this note
+  const item = getItemById(note.attachedToId, note.attachedToType);
+  if (item) {
+    setSelectedItem(item);
+    setSelectedType(note.attachedToType);
+    clearSearch();
+  }
+};
+
+// AI Summary functionality
+export const generateAISummary = async (notes) => {
+  if (!notes || notes.length === 0) {
+    throw new Error('No notes provided for summarization');
+  }
+
+  try {
+    // Prepare notes data for AI analysis
+    const notesData = notes.map(note => ({
+      content: note.content,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt
+    }));
+
+    // Call the AI summary API endpoint
+    const response = await apiCall('/ai/summarize', {
+      method: 'POST',
+      body: JSON.stringify({ notes: notesData })
+    });
+
+    return response.summary;
+  } catch (err) {
+    console.error('AI Summary API error:', err);
+    
+    // Fallback to a simple client-side summary if API fails
+    return generateFallbackSummary(notes);
+  }
+};
+
+// Fallback summary generation (client-side)
+const generateFallbackSummary = (notes) => {
+  if (notes.length === 0) return 'No notes available.';
+  
+  const totalNotes = notes.length;
+  const totalWords = notes.reduce((acc, note) => acc + note.content.split(' ').length, 0);
+  const avgWordsPerNote = Math.round(totalWords / totalNotes);
+  
+  // Sort notes by creation date
+  const sortedNotes = [...notes].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const oldestNote = sortedNotes[0];
+  const newestNote = sortedNotes[sortedNotes.length - 1];
+  
+  // Extract key themes (simple keyword frequency)
+  const allText = notes.map(note => note.content.toLowerCase()).join(' ');
+  const words = allText.split(/\W+/).filter(word => word.length > 3);
+  const wordCount = {};
+  words.forEach(word => {
+    wordCount[word] = (wordCount[word] || 0) + 1;
+  });
+  
+  const topWords = Object.entries(wordCount)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+    .map(([word]) => word);
+  
+  return `📊 **Summary Overview**
+
+` +
+    `**Total Notes:** ${totalNotes}
+` +
+    `**Total Words:** ${totalWords} (avg ${avgWordsPerNote} per note)
+` +
+    `**Date Range:** ${new Date(oldestNote.createdAt).toLocaleDateString()} - ${new Date(newestNote.createdAt).toLocaleDateString()}
+
+` +
+    `**Key Topics:** ${topWords.join(', ')}
+
+` +
+    `**Recent Activity:**
+` +
+    `${notes.slice(-3).map(note => 
+      `• ${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''} (${new Date(note.createdAt).toLocaleDateString()})`
+    ).join('\n')}
+
+` +
+    `*Note: This is a basic summary. For more detailed AI analysis, please ensure the AI service is properly configured.*`;
+};
+
 
 export const getBreadcrumb = (itemId, itemType) => {
   const breadcrumb = [];
@@ -126,12 +327,12 @@ export const addItem = async (type, name, parentId = null) => {
   }
 };
 
-export const addNote = async (content, attachedToId, attachedToType) => {
+export const addNote = async (content, attachedToId, attachedToType, tags = []) => {
   try {
     setLoading(true);
     const newNote = await apiCall('/notes', {
       method: 'POST',
-      body: JSON.stringify({ content, attachedToId, attachedToType })
+      body: JSON.stringify({ content, attachedToId, attachedToType, tags })
     });
     
     // Update local state
@@ -140,6 +341,9 @@ export const addNote = async (content, attachedToId, attachedToType) => {
       ...currentData,
       notes: [...currentData.notes, newNote]
     });
+    
+    // Update available tags
+    updateAvailableTags();
     
     return newNote;
   } catch (err) {
@@ -150,12 +354,12 @@ export const addNote = async (content, attachedToId, attachedToType) => {
   }
 };
 
-export const updateNote = async (noteId, content) => {
+export const updateNote = async (noteId, content, tags = []) => {
   try {
     setLoading(true);
     const updatedNote = await apiCall(`/notes/${noteId}`, {
       method: 'PUT',
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content, tags })
     });
     
     // Update local state
@@ -168,6 +372,9 @@ export const updateNote = async (noteId, content) => {
       ...currentData,
       notes: updatedNotes
     });
+    
+    // Update available tags
+    updateAvailableTags();
     
     return updatedNote;
   } catch (err) {
@@ -270,4 +477,21 @@ export const hierarchyTree = createMemo(() => {
 });
 
 // Export signals
-export { data, selectedItem, setSelectedItem, selectedType, setSelectedType, loading, error, loadData };
+export { 
+  data, 
+  selectedItem, 
+  setSelectedItem, 
+  selectedType, 
+  setSelectedType, 
+  loading, 
+  error, 
+  loadData,
+  searchQuery,
+  setSearchQuery,
+  searchResults,
+  isSearching,
+  selectedTags,
+  setSelectedTags,
+  availableTags,
+  setAvailableTags
+};

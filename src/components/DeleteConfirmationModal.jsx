@@ -35,30 +35,30 @@ function DeleteConfirmationModal(props) {
       onClose={handleCancel}
       title="Confirm Delete"
     >
-      <div class="modal-form-content">
-        <div class="form-icon-header">
+      <div class="modal-body">
+        <div class="text-center mb-4">
           <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc2626; margin-bottom: 1rem;"></i>
-          <h3 style="margin-bottom: 0.5rem; color: #dc2626;">Delete {getTypeLabel(props.type)}?</h3>
-          <p class="text-sm text-gray-600" style="margin-bottom: 1.5rem;">
+          <h4 class="mb-2 text-danger">Delete {getTypeLabel(props.type)}?</h4>
+          <p class="text-muted small mb-0">
             This action cannot be undone.
           </p>
         </div>
         
-        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <i class={getTypeIcon(props.type)} style="color: #dc2626; font-size: 1.25rem;"></i>
+        <div class="alert alert-danger border-danger">
+          <div class="d-flex align-items-center mb-3">
+            <i class={`${getTypeIcon(props.type)} me-3`} style="color: #dc2626; font-size: 1.25rem;"></i>
             <div>
-              <div style="font-weight: 600; color: #7f1d1d;">{props.itemName}</div>
-              <div style="font-size: 0.875rem; color: #991b1b;">{getTypeLabel(props.type)}</div>
+              <div class="fw-bold text-danger">{props.itemName}</div>
+              <div class="small text-danger-emphasis">{getTypeLabel(props.type)}</div>
             </div>
           </div>
           
-          <div style="font-size: 0.875rem; color: #7f1d1d;">
-            <p style="margin: 0;">
-              <i class="fas fa-warning" style="margin-right: 0.5rem;"></i>
+          <div class="small text-danger-emphasis">
+            <p class="mb-2">
+              <i class="fas fa-warning me-2"></i>
               <strong>Warning:</strong> This will permanently delete:
             </p>
-            <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+            <ul class="mb-0 ps-4">
               <li>The {getTypeLabel(props.type).toLowerCase()} "{props.itemName}"</li>
               <li>All child items (if any)</li>
               <li>All associated notes</li>
@@ -67,24 +67,13 @@ function DeleteConfirmationModal(props) {
         </div>
       </div>
       
-      <div class="modal-actions">
-        <button 
-          type="button" 
-          class="btn btn-secondary"
-          onClick={handleCancel}
-        >
-          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onClick={handleCancel}>
+          <i class="fas fa-times me-2"></i>
           Cancel
         </button>
-        <button 
-          type="button" 
-          class="btn"
-          onClick={handleConfirm}
-          style="background: #dc2626; color: white;"
-          onMouseOver={(e) => e.target.style.background = '#b91c1c'}
-          onMouseOut={(e) => e.target.style.background = '#dc2626'}
-        >
-          <i class="fas fa-trash" style="margin-right: 0.5rem;"></i>
+        <button type="button" class="btn btn-danger" onClick={handleConfirm}>
+          <i class="fas fa-trash me-2"></i>
           Delete {getTypeLabel(props.type)}
         </button>
       </div>

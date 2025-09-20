@@ -15,10 +15,10 @@ A simple, polished note-taking web application designed for healthcare organizat
 ## Hierarchy Structure
 
 ```
-🏥 Organization (e.g., City General Hospital)
-  └── 👥 Team (e.g., Cardiology Department)
-      └── 👤 Client (e.g., John Smith)
-          └── 📋 Episode (e.g., Chest Pain Assessment)
+Organization (e.g., City General Hospital)
+  Team (e.g., Cardiology Department)
+      Client (e.g., John Smith)
+          Episode (e.g., Chest Pain Assessment)
 ```
 
 Notes can be attached to any level:

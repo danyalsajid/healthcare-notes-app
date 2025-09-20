@@ -2,6 +2,8 @@ import { Show, createEffect } from 'solid-js';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import AuthContainer from './components/AuthContainer';
+import SearchBar from './components/SearchBar';
+import TagFilter from './components/TagFilter';
 import { selectedItem, selectedType, loadData, loading, error } from './store';
 import { isAuthenticated, user, logout } from './auth';
 
@@ -22,7 +24,7 @@ function App() {
   const getUserInitials = () => {
     const currentUser = user();
     if (!currentUser?.name) return 'U';
-    return currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase(); // e.g., "John Doe" -> "JD"
   };
 
   return (
@@ -34,9 +36,14 @@ function App() {
         <Sidebar />
         <div class="main-content">
           <div class="header">
-            <div>
-              <h1>Healthcare Notes</h1>
-              <p class="text-gray-600">Organize notes across your healthcare hierarchy</p>
+            <div class="d-flex align-items-center gap-4">
+              <div>
+                <h1>Healthcare Notes</h1>
+                <p class="text-gray-600 mb-0">Organize notes across your healthcare hierarchy</p>
+              </div>
+              <div class="flex-grow-1" style="max-width: 400px;">
+                <SearchBar />
+              </div>
             </div>
             <div class="header-user">
               <div class="user-info">
@@ -53,6 +60,10 @@ function App() {
                 Logout
               </button>
             </div>
+          </div>
+          
+          <div class="mb-3">
+            <TagFilter />
           </div>
           <Show when={loading()}>
             <div class="text-sm text-gray-500">Loading...</div>

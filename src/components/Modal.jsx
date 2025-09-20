@@ -30,25 +30,27 @@ function Modal(props) {
   return (
     <Show when={props.isOpen}>
       <div 
-        class="modal-backdrop"
+        class="modal fade show d-block"
+        style="background-color: rgba(0, 0, 0, 0.5);"
         onClick={handleBackdropClick}
         onKeyDown={handleKeyDown}
         tabIndex="-1"
         ref={modalRef}
       >
-        <div class="modal-content" role="dialog" aria-modal="true">
-          <div class="modal-header">
-            <h2 class="modal-title">{props.title}</h2>
-            <button 
-              class="modal-close-btn"
-              onClick={props.onClose}
-              aria-label="Close modal"
-            >
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div class="modal-body">
-            {props.children}
+        <div class="modal-dialog modal-dialog-centered" role="dialog" aria-modal="true">
+          <div class="modal-content shadow-lg">
+            <div class="modal-header border-bottom">
+              <h5 class="modal-title fw-semibold text-dark">{props.title}</h5>
+              <button 
+                type="button"
+                class="btn-close"
+                onClick={props.onClose}
+                aria-label="Close modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              {props.children}
+            </div>
           </div>
         </div>
       </div>

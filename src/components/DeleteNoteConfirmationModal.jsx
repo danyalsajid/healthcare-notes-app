@@ -28,35 +28,35 @@ function DeleteNoteConfirmationModal(props) {
       onClose={handleCancel}
       title="Delete Note"
     >
-      <div class="modal-form-content">
-        <div class="form-icon-header">
+      <div class="modal-body">
+        <div class="text-center mb-4">
           <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc2626; margin-bottom: 1rem;"></i>
-          <h3 style="margin-bottom: 0.5rem; color: #dc2626;">Delete Note?</h3>
-          <p class="text-sm text-gray-600" style="margin-bottom: 1.5rem;">
+          <h4 class="mb-2 text-danger">Delete Note?</h4>
+          <p class="text-muted small mb-0">
             This action cannot be undone.
           </p>
         </div>
         
         {props.note && (
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;">
-              <i class="fas fa-sticky-note" style="color: #dc2626; font-size: 1.25rem; margin-top: 0.25rem;"></i>
-              <div style="flex: 1;">
-                <div style="font-weight: 600; color: #7f1d1d; margin-bottom: 0.5rem;">Note Content:</div>
-                <div style="font-size: 0.875rem; color: #991b1b; background: white; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid #fecaca; white-space: pre-wrap;">
+          <div class="alert alert-danger border-danger mb-4">
+            <div class="d-flex align-items-start mb-3">
+              <i class="fas fa-sticky-note me-3 mt-1" style="color: #dc2626; font-size: 1.25rem;"></i>
+              <div class="flex-grow-1">
+                <div class="fw-bold text-danger mb-2">Note Content:</div>
+                <div class="small text-danger-emphasis bg-white p-3 rounded border border-danger-subtle" style="white-space: pre-wrap;">
                   {truncateContent(props.note.content)}
                 </div>
               </div>
             </div>
             
-            <div style="font-size: 0.75rem; color: #7f1d1d; border-top: 1px solid #fecaca; padding-top: 0.75rem;">
+            <div class="small text-danger-emphasis border-top border-danger-subtle pt-3">
               <div>
-                <i class="fas fa-calendar" style="margin-right: 0.5rem;"></i>
+                <i class="fas fa-calendar me-2"></i>
                 Created: {formatDate(props.note.createdAt)}
               </div>
               {props.note.updatedAt !== props.note.createdAt && (
-                <div style="margin-top: 0.25rem;">
-                  <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>
+                <div class="mt-1">
+                  <i class="fas fa-clock me-2"></i>
                   Last updated: {formatDate(props.note.updatedAt)}
                 </div>
               )}
@@ -64,32 +64,21 @@ function DeleteNoteConfirmationModal(props) {
           </div>
         )}
         
-        <div style="font-size: 0.875rem; color: #7f1d1d; text-align: center;">
-          <p style="margin: 0;">
-            <i class="fas fa-warning" style="margin-right: 0.5rem;"></i>
+        <div class="text-center small text-danger-emphasis">
+          <p class="mb-0">
+            <i class="fas fa-warning me-2"></i>
             <strong>Warning:</strong> This note will be permanently deleted and cannot be recovered.
           </p>
         </div>
       </div>
       
-      <div class="modal-actions">
-        <button 
-          type="button" 
-          class="btn btn-secondary"
-          onClick={handleCancel}
-        >
-          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onClick={handleCancel}>
+          <i class="fas fa-times me-2"></i>
           Cancel
         </button>
-        <button 
-          type="button" 
-          class="btn"
-          onClick={handleConfirm}
-          style="background: #dc2626; color: white;"
-          onMouseOver={(e) => e.target.style.background = '#b91c1c'}
-          onMouseOut={(e) => e.target.style.background = '#dc2626'}
-        >
-          <i class="fas fa-trash" style="margin-right: 0.5rem;"></i>
+        <button type="button" class="btn btn-danger" onClick={handleConfirm}>
+          <i class="fas fa-trash me-2"></i>
           Delete Note
         </button>
       </div>
