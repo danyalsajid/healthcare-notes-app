@@ -1,4 +1,4 @@
-import { Show, createEffect } from 'solid-js';
+import { Show, createEffect, createSignal, onMount } from 'solid-js';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import AuthContainer from './components/AuthContainer';
@@ -7,6 +7,8 @@ import TagFilter from './components/TagFilter';
 import { selectedItem, selectedType, loadData, loading, error } from './store';
 import { isAuthenticated, user, logout } from './auth';
 
+const [isMobile, setIsMobile] = createSignal(false);
+
 // Load initial data when authenticated
 createEffect(() => {
   if (isAuthenticated()) {
@@ -14,6 +16,15 @@ createEffect(() => {
       console.error('Failed to load data:', error);
     });
   }
+});
+
+onMount(() => {
+  const checkMobile = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  return () => window.removeEventListener('resize', checkMobile);
 });
 
 function App() {
@@ -36,12 +47,13 @@ function App() {
         <Sidebar />
         <div class="main-content">
           <div class="header">
+             {/* {isMobile() ? 'mobile-sidebar' : 'desktop-sidebar'} */}
             <div class="d-flex align-items-center gap-4">
               <div>
                 <h1>Healthcare Notes</h1>
                 <p class="text-gray-600 mb-0">Organize notes across your healthcare hierarchy</p>
               </div>
-              <div class="flex-grow-1" style="max-width: 400px;">
+              <div class={`${isMobile() ? 'w-100' : 'flex-grow-1'}`}>
                 <SearchBar />
               </div>
             </div>

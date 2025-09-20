@@ -240,7 +240,6 @@ export const generateAISummary = async (notes) => {
   }
 };
 
-
 export const getBreadcrumb = (itemId, itemType) => {
   const breadcrumb = [];
   let currentId = itemId;

@@ -80,19 +80,19 @@ async function seedDatabase() {
       {
         id: 'user-1',
         username: 'admin',
-        password: '$2b$10$5zKTeKykmBC9OpjZZVo.aeD27q6XD7CmRCU8kDYRQ0vddPN2gyk4K', // password: admin123
+        password: '$2b$10$oTT/NBnCnex7rgma0nAp/ug8dSuwDRwUB93JQQxLlGDCOHNYnYp.C', // password: Test@123
         email: 'admin@healthcare.com',
-        name: 'System Administrator',
+        name: 'Admin',
         role: 'admin',
         createdAt: new Date().toISOString()
       },
       {
         id: 'user-2',
-        username: 'doctor',
-        password: '$2b$10$F06kZecxUW2AgPSDr5wZMe/U7hVxfHkUUlFevdTCAOKEOReKmM4su', // password: doctor123
-        email: 'doctor@healthcare.com',
-        name: 'Dr. Sarah Wilson',
-        role: 'doctor',
+        username: 'clinician',
+        password: '$2b$10$oTT/NBnCnex7rgma0nAp/ug8dSuwDRwUB93JQQxLlGDCOHNYnYp.C', // password: Test@123
+        email: 'clinician@healthcare.com',
+        name: 'Clinician',
+        role: 'clinician',
         createdAt: new Date().toISOString()
       }
     ];

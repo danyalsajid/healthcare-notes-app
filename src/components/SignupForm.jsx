@@ -8,7 +8,7 @@ function SignupForm(props) {
     confirmPassword: '',
     email: '',
     name: '',
-    role: 'user'
+    role: 'clinician'
   });
   const [showPassword, setShowPassword] = createSignal(false);
   const [showConfirmPassword, setShowConfirmPassword] = createSignal(false);
@@ -158,9 +158,7 @@ function SignupForm(props) {
                 onInput={(e) => updateField('role', e.target.value)}
                 disabled={authLoading()}
               >
-                <option value="user">General User</option>
-                <option value="nurse">Nurse</option>
-                <option value="doctor">Doctor</option>
+                <option value="clinician">Clinician</option>
                 <option value="admin">Administrator</option>
               </select>
             </div>

@@ -122,13 +122,10 @@ function LoginForm(props) {
               <h6 class="text-dark fw-semibold mb-2 small">Demo Credentials:</h6>
               <div class="small text-muted">
                 <div class="mb-1">
-                  <strong class="text-dark">Admin:</strong> admin / password
-                </div>
-                <div class="mb-1">
-                  <strong class="text-dark">Doctor:</strong> doctor / password
+                  <strong class="text-dark">Admin:</strong> admin / Test@123
                 </div>
                 <div>
-                  <strong class="text-dark">Nurse:</strong> nurse / password
+                  <strong class="text-dark">Clinician:</strong> clinician / Test@123
                 </div>
               </div>
             </div>

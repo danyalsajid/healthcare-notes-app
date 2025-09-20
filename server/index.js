@@ -151,7 +151,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
     
-    const userList = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const userList = await db.select().from(users).where(eq(users.username, username.toLowerCase())).limit(1);
     const user = userList[0];
     
     if (!user) {
@@ -197,6 +197,12 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Username, password, email, and name are required' });
     }
     
+    // Role validation - only allow admin and clinician
+    const allowedRoles = ['admin', 'clinician'];
+    if (role && !allowedRoles.includes(role.toLowerCase())) {
+      return res.status(400).json({ error: 'Invalid role. Only admin and clinician roles are allowed' });
+    }
+    
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
@@ -207,9 +213,9 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
     
-    // Check if user already exists
+    // Check if user already exists (case insensitive)
     const existingUsers = await db.select().from(users).where(
-      eq(users.username, username)
+      eq(users.username, username.toLowerCase())
     );
     
     const existingEmails = await db.select().from(users).where(
@@ -230,11 +236,11 @@ app.post('/api/auth/signup', async (req, res) => {
     // Create new user
     const newUser = {
       id: generateId(),
-      username,
+      username: username.toLowerCase(),
       password: hashedPassword,
       email,
       name,
-      role: role || 'user', // Default role
+      role: role ? role.toLowerCase() : 'clinician', // Default role
       createdAt: new Date().toISOString()
     };
     

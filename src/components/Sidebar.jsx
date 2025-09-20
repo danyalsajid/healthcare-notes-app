@@ -1,4 +1,4 @@
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createSignal, onMount } from 'solid-js';
 import { hierarchyTree, selectedItem, setSelectedItem, selectedType, setSelectedType, addItem } from '../store';
 import AddItemModal from './AddItemModal';
 
@@ -7,6 +7,17 @@ function Sidebar() {
   const [addModalParent, setAddModalParent] = createSignal(null);
   const [addModalType, setAddModalType] = createSignal(null);
   const [isExpanded, setIsExpanded] = createSignal(false);
+  const [isMobileCollapsed, setIsMobileCollapsed] = createSignal(true);
+  const [isMobile, setIsMobile] = createSignal(false);
+
+  onMount(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  });
 
   const selectItem = (item, type) => {
     setSelectedItem(item);
@@ -127,24 +138,44 @@ function Sidebar() {
   };
 
   const toggleSidebar = () => {
-    setIsExpanded(!isExpanded());
+    if (isMobile()) {
+      setIsMobileCollapsed(!isMobileCollapsed());
+    } else {
+      setIsExpanded(!isExpanded());
+    }
   };
 
   return (
     <div 
-      class="d-flex flex-column h-100 bg-white border-end p-3 sidebar-container" 
-      style={`width: ${isExpanded() ? '50%' : '300px'}; overflow-y: auto; transition: width 0.3s ease;`}
+      class={`d-flex flex-column bg-white border-end sidebar-container ${
+        isMobile() ? 'mobile-sidebar' : 'desktop-sidebar'
+      }`}
+      style={`
+        ${isMobile() 
+          ? `height: ${isMobileCollapsed() ? 'auto' : '60vh'}; width: 100%; transition: height 0.3s ease;` 
+          : `width: ${isExpanded() ? '50%' : '300px'}; height: 100vh; transition: width 0.3s ease;`
+        }
+        overflow-y: auto;
+        min-width: 300px;
+      `}
     >
-      <div class="flex-shrink-0 mb-3">
+      <div class="flex-shrink-0 mb-3 p-3">
         <div class="d-flex align-items-center justify-content-between py-2 mb-2 border-bottom">
           <div class="d-flex align-items-center">
             <button
               class="btn btn-outline-secondary btn-sm me-2 p-1"
               onClick={toggleSidebar}
-              title={isExpanded() ? 'Collapse sidebar' : 'Expand sidebar'}
+              title={isMobile() 
+                ? (isMobileCollapsed() ? 'Expand menu' : 'Collapse menu')
+                : (isExpanded() ? 'Collapse sidebar' : 'Expand sidebar')
+              }
               style="width: 28px; height: 28px;"
             >
-              <i class={`fas ${isExpanded() ? 'fa-chevron-left' : 'fa-chevron-right'}`} style="font-size: 0.75rem;"></i>
+              <i class={`fas ${
+                isMobile() 
+                  ? (isMobileCollapsed() ? 'fa-chevron-down' : 'fa-chevron-up')
+                  : (isExpanded() ? 'fa-chevron-left' : 'fa-chevron-right')
+              }`} style="font-size: 0.75rem;"></i>
             </button>
             <h2 class="h5 fw-medium text-dark mb-0" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               Organizations
@@ -156,26 +187,28 @@ function Sidebar() {
             style="font-size: 0.75rem; flex-shrink: 0;"
           >
             <i class="fas fa-plus me-1"></i>
-            {isExpanded() ? 'Add Organization' : 'Add Org'}
+            {(!isMobile() && isExpanded()) || isMobile() ? 'Add Organization' : 'Add Org'}
           </button>
         </div>
       </div>
       
-      <div class="flex-grow-1 overflow-auto px-3" style="max-height: calc(100vh - 80px);">
-        <ul class="list-unstyled mb-0">
-          <For each={hierarchyTree()}>
-            {(org) => (
-              <TreeNode
-                item={org}
-                type="organisation"
-                children={org.children}
-                canAddChild={true}
-                childType="team"
-              />
-            )}
-          </For>
-        </ul>
-      </div>
+      <Show when={!isMobile() || !isMobileCollapsed()}>
+        <div class="flex-grow-1 overflow-auto px-3" style={`max-height: ${isMobile() ? 'calc(60vh - 120px)' : 'calc(100vh - 120px)'};`}>
+          <ul class="list-unstyled mb-0">
+            <For each={hierarchyTree()}>
+              {(org) => (
+                <TreeNode
+                  item={org}
+                  type="organisation"
+                  children={org.children}
+                  canAddChild={true}
+                  childType="team"
+                />
+              )}
+            </For>
+          </ul>
+        </div>
+      </Show>
 
       <AddItemModal
         isOpen={showAddModal()}
