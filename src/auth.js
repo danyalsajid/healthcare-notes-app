@@ -4,13 +4,23 @@ import { createSignal, createEffect } from 'solid-js';
 const getApiBase = () => {
   // Use the same protocol as the current page (HTTP or HTTPS)
   const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
   
-  // If running on localhost (development), use localhost
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  console.log('Current page protocol:', protocol);
+  console.log('Current page hostname:', hostname);
+  
+  // If running on localhost (development), use localhost with port 3001
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${protocol}//localhost:3001/api`;
   }
-  // Otherwise, use the same host but port 3001 for the API
-  return `${protocol}//${window.location.hostname}:3001/api`;
+  
+  // If deployed (Railway, Netlify, etc.), API is on same domain without port
+  if (hostname.includes('.railway.app') || hostname.includes('.netlify.app') || hostname.includes('.vercel.app')) {
+    return `${protocol}//${hostname}/api`;
+  }
+  
+  // For other network access (local network), use port 3001
+  return `${protocol}//${hostname}:3001/api`;
 };
 const API_BASE = getApiBase();
 console.log('API_BASE configured as:', API_BASE);
@@ -93,7 +103,10 @@ const login = async (username, password) => {
     setAuthLoading(true);
     setAuthError(null);
     
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const loginUrl = `${API_BASE}/auth/login`;
+    console.log('Attempting login to:', loginUrl);
+    
+    const response = await fetch(loginUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
