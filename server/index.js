@@ -79,6 +79,14 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+// Admin authorization middleware
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 // Generate unique ID
 const generateId = () => randomUUID();
 
@@ -190,7 +198,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { username, password, email, name, role } = req.body;
+    const { username, password, email, name, role, adminPasscode } = req.body;
     
     // Validation
     if (!username || !password || !email || !name) {
@@ -201,6 +209,16 @@ app.post('/api/auth/signup', async (req, res) => {
     const allowedRoles = ['admin', 'clinician'];
     if (role && !allowedRoles.includes(role.toLowerCase())) {
       return res.status(400).json({ error: 'Invalid role. Only admin and clinician roles are allowed' });
+    }
+    
+    // Admin passcode validation
+    if (role && role.toLowerCase() === 'admin') {
+      if (!adminPasscode) {
+        return res.status(400).json({ error: 'Admin passcode is required for administrator accounts' });
+      }
+      if (adminPasscode !== '000000') {
+        return res.status(400).json({ error: 'Invalid admin passcode' });
+      }
     }
     
     if (password.length < 6) {
@@ -429,6 +447,11 @@ app.post('/api/:type', requireAuth, async (req, res) => {
     // Convert plural to singular for database
     const singularType = type.slice(0, -1); // Remove 's'
     
+    // Check if user is trying to create an organization
+    if (singularType === 'organisation' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only administrators can create organizations' });
+    }
+    
     const newItem = await createHierarchyNode(singularType, name, parentId);
     
     res.status(201).json({
@@ -561,6 +584,14 @@ app.delete('/api/:type/:id', requireAuth, async (req, res) => {
     const item = await getNodeById(id);
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    // Convert plural to singular for type checking
+    const singularType = type.slice(0, -1); // Remove 's'
+    
+    // Check if user is trying to delete an organization
+    if (singularType === 'organisation' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only administrators can delete organizations' });
     }
     
     // Delete the node and all its descendants

@@ -1,5 +1,6 @@
 import { For, Show, createSignal, onMount } from 'solid-js';
 import { hierarchyTree, selectedItem, setSelectedItem, selectedType, setSelectedType } from '../store';
+import { user } from '../auth';
 
 function Sidebar(props) {
   const [isExpanded, setIsExpanded] = createSignal(false);
@@ -27,6 +28,10 @@ function Sidebar(props) {
   const showAddModalFor = (parentItem, parentType, childType) => {
     console.log('Sidebar - showAddModalFor called with:', { parentItem, parentType, childType });
     props.onShowAddModal?.(parentItem, parentType, childType);
+  };
+
+  const isAdmin = () => {
+    return user()?.role === 'admin';
   };
 
 
@@ -130,14 +135,16 @@ function Sidebar(props) {
               Organizations
             </h2>
           </div>
-          <button
-            class="btn btn-primary btn-sm px-3 py-1"
-            onClick={() => showAddModalFor(null, null, 'organisation')}
-            style="font-size: 0.75rem; flex-shrink: 0;"
-          >
-            <i class="fas fa-plus me-1"></i>
-            {(!isMobile() && isExpanded()) || isMobile() ? 'Add Organization' : 'Add Org'}
-          </button>
+          <Show when={isAdmin()}>
+            <button
+              class="btn btn-primary btn-sm px-3 py-1"
+              onClick={() => showAddModalFor(null, null, 'organisation')}
+              style="font-size: 0.75rem; flex-shrink: 0;"
+            >
+              <i class="fas fa-plus me-1"></i>
+              {(!isMobile() && isExpanded()) || isMobile() ? 'Add Organization' : 'Add Org'}
+            </button>
+          </Show>
         </div>
       </div>
       

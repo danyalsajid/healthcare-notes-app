@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { signup, authLoading, authError } from '../auth';
 
 function SignupForm(props) {
@@ -8,7 +8,8 @@ function SignupForm(props) {
     confirmPassword: '',
     email: '',
     name: '',
-    role: 'clinician'
+    role: 'clinician',
+    adminPasscode: ''
   });
   const [showPassword, setShowPassword] = createSignal(false);
   const [showConfirmPassword, setShowConfirmPassword] = createSignal(false);
@@ -55,6 +56,15 @@ function SignupForm(props) {
 
     if (!data.name.trim()) {
       errors.name = 'Full name is required';
+    }
+
+    // Admin passcode validation
+    if (data.role === 'admin') {
+      if (!data.adminPasscode.trim()) {
+        errors.adminPasscode = 'Admin passcode is required for administrator accounts';
+      } else if (data.adminPasscode !== '000000') {
+        errors.adminPasscode = 'Invalid admin passcode';
+      }
     }
 
     setValidationErrors(errors);
@@ -162,6 +172,30 @@ function SignupForm(props) {
                 <option value="admin">Administrator</option>
               </select>
             </div>
+
+            <Show when={formData().role === 'admin'}>
+              <div class="mb-3">
+                <label class="form-label fw-medium text-dark">
+                  <i class="fas fa-key me-2"></i>
+                  Admin Passcode
+                </label>
+                <input
+                  type="password"
+                  class={`form-control ${validationErrors().adminPasscode ? 'is-invalid' : ''}`}
+                  value={formData().adminPasscode}
+                  onInput={(e) => updateField('adminPasscode', e.target.value)}
+                  placeholder="Enter admin passcode"
+                  disabled={authLoading()}
+                />
+                {validationErrors().adminPasscode && (
+                  <div class="invalid-feedback">{validationErrors().adminPasscode}</div>
+                )}
+                <div class="form-text text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Admin accounts require a special passcode from your approved email. For demo purposes, use: <strong>000000</strong>
+                </div>
+              </div>
+            </Show>
 
             <div class="mb-3">
               <label class="form-label fw-medium text-dark">

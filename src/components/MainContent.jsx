@@ -1,5 +1,6 @@
 import { Show, For, createSignal } from 'solid-js';
 import { selectedItem, selectedType, getBreadcrumb, getNotesForItem, updateItem, deleteItem, setSelectedItem, setSelectedType, generateAISummary } from '../store';
+import { user } from '../auth';
 import Breadcrumb from './Breadcrumb';
 import NotesList from './NotesList';
 import AddNoteForm from './AddNoteForm';
@@ -93,6 +94,19 @@ function MainContent() {
     return await generateAISummary(notes);
   };
 
+  const canEditDeleteItem = () => {
+    const currentType = type();
+    const currentUser = user();
+    
+    // Only admins can edit and delete organizations
+    if (currentType === 'organisation') {
+      return currentUser?.role === 'admin';
+    }
+    
+    // All authenticated users can edit and delete other types
+    return true;
+  };
+
   return (
     <div class="container-fluid p-4">
       <Show when={breadcrumb().length > 0}>
@@ -112,6 +126,7 @@ function MainContent() {
             </p>
           </div>
           <div class="d-flex gap-2">
+          <Show when={canEditDeleteItem()}>
             <button
               class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center"
               onClick={startEditing}
@@ -120,14 +135,16 @@ function MainContent() {
             >
               <i class="fas fa-edit"></i>
             </button>
-            <button
-              class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
-              onClick={showDeleteConfirmation}
-              title="Delete"
-              style="width: 2.5rem; height: 2.5rem;"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
+           
+              <button
+                class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                onClick={showDeleteConfirmation}
+                title="Delete"
+                style="width: 2.5rem; height: 2.5rem;"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </Show>
           </div>
         </div>
 
