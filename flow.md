@@ -57,7 +57,7 @@ graph TB
     TeamNodes -->|Add Button| AddModal
     ClientNodes -->|Add Button| AddModal
     
-    AddModal --> AddItemAPI[POST /api/{type}s]
+    AddModal --> AddItemAPI["POST /api/{type}s"]
     AddItemAPI -->|Success| RefreshData[Reload Data & Update UI]
     AddItemAPI -->|Failure| AddError[Show Add Error]
     RefreshData --> HierarchyTree
